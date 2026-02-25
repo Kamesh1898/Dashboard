@@ -1,155 +1,318 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Sample Dashboard</title>
-    https://cdn.jsdelivr.net/npm/chart.js</script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dashboard with Auto-Increment KPIs</title>
+<style>
+  :root{
+    --brand:#0078d7;
+    --bg:#f4f6f8;
+    --card:#ffffff;
+    --text:#444;
+  }
+  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text);}
+  header{background:var(--brand);color:#fff;padding:20px;text-align:center;font-weight:bold;font-size:22px;}
+  .container{padding:20px;max-width:1200px;margin:0 auto;}
 
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f4f6f8;
-        }
+  /* KPI Cards */
+  .cards{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:30px;}
+  .card{background:var(--card);flex:1 1 250px;min-width:240px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.12);padding:18px;}
+  .card h3{margin:0 0 8px;font-size:16px;color:#555;font-weight:600;}
+  .card .value{font-size:30px;color:var(--brand);font-weight:800;letter-spacing:.5px}
 
-        header {
-            background: #0078d7;
-            color: white;
-            padding: 20px;
-            font-size: 24px;
-            text-align: center;
-            font-weight: bold;
-        }
+  /* Chart */
+  .chart-box{background:var(--card);border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.12);padding:20px;margin-top:10px;}
+  .chart-title{margin:0 0 12px;font-size:18px;font-weight:700;color:#333}
+  canvas{width:100%;max-width:100%;height:280px;display:block}
 
-        .container {
-            padding: 20px;
-        }
-
-        /* KPI Cards */
-        .cards {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .card {
-            background: white;
-            padding: 20px;
-            flex: 1;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-        }
-        .card h3 {
-            margin: 0;
-            font-size: 18px;
-            color: #444;
-        }
-        .card .value {
-            margin-top: 10px;
-            font-size: 28px;
-            color: #0078d7;
-            font-weight: bold;
-        }
-
-        /* Table */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 25px;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-        }
-        th, td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #eee;
-        }
-        th {
-            background: #0078d7;
-            color: white;
-        }
-
-        /* Chart container */
-        .chart-box {
-            background: white;
-            padding: 20px;
-            margin-top: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-        }
-    </style>
+  /* Table */
+  .tbl-wrap{background:var(--card);border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.12);padding:10px;margin-top:30px;}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden}
+  thead th{background:var(--brand);color:#fff;text-align:left;padding:12px 14px;font-size:14px}
+  tbody td{padding:12px 14px;border-bottom:1px solid #eee;font-size:14px}
+  tbody tr:last-child td{border-bottom:none}
+  .muted{opacity:.8;font-size:12px}
+</style>
 </head>
-
 <body>
-<header>Dashboard Overview</header>
-
-<div class="container">
-
-    <!-- KPI CARDS -->
+  <header>Dashboard Overview</header>
+  <div class="container">
+    <!-- KPI Cards -->
     <div class="cards">
-        <div class="card">
-            <h3>Total Users</h3>
-            <div class="value" id="kpiUsers">1200</div>
-        </div>
-        <div class="card">
-            <h3>Active Sessions</h3>
-            <div class="value" id="kpiActive">320</div>
-        </div>
-        <div class="card">
-            <h3>Monthly Revenue</h3>
-            <div class="value" id="kpiRevenue">$45,600</div>
-        </div>
+      <div class="card">
+        <h3>Total Users</h3>
+        <div class="value" id="kpiUsers">1,200</div>
+        <div class="muted" id="kpiUsersDesc">+0 in last update</div>
+      </div>
+      <div class="card">
+        <h3>Active Sessions</h3>
+        <div class="value" id="kpiActive">320</div>
+        <div class="muted" id="kpiActiveDesc">+0 in last update</div>
+      </div>
+      <div class="card">
+        <h3>Monthly Revenue</h3>
+        <div class="value" id="kpiRevenue">$45,600</div>
+        <div class="muted" id="kpiRevenueDesc">+$0 in last update</div>
+      </div>
     </div>
 
-    <!-- CHART -->
+    <!-- Chart -->
     <div class="chart-box">
-        <h3>Sales (Last 6 Months)</h3>
-        <canvas id="salesChart" height="120"></canvas>
+      <h3 class="chart-title">Sales (Last 6 Months)</h3>
+      <canvas id="salesChart"></canvas>
+      <div class="muted" id="chartNote">Auto-updating every 10s</div>
     </div>
 
-    <!-- DATA TABLE -->
-    <h3 style="margin-top: 40px;">Recent Transactions</h3>
-    <table>
+    <!-- Recent Transactions -->
+    <div class="tbl-wrap">
+      <h3 style="margin:10px 8px 14px;font-size:18px;">Recent Transactions</h3>
+      <table>
         <thead>
-            <tr>
-                <th>ID</th>
-                <th>User</th>
-                <th>Amount</th>
-                <th>Date</th>
-            </tr>
+          <tr>
+            <th style="width:120px">ID</th>
+            <th>User</th>
+            <th style="width:140px">Amount</th>
+            <th style="width:160px">Date</th>
+          </tr>
         </thead>
-        <tbody>
-            <tr><td>1001</td><td>Ramesh</td><td>$120</td><td>2026-02-01</td></tr>
-            <tr><td>1002</td><td>Suresh</td><td>$89</td><td>2026-02-03</td></tr>
-            <tr><td>1003</td><td>Kiran</td><td>$250</td><td>2026-02-10</td></tr>
+        <tbody id="txBody">
+          <tr><td>1001</td><td>Ramesh</td><td>$120</td><td>2026-02-01</td></tr>
+          <tr><td>1002</td><td>Suresh</td><td>$89</td><td>2026-02-03</td></tr>
+          <tr><td>1003</td><td>Kiran</td><td>$250</td><td>2026-02-10</td></tr>
         </tbody>
-    </table>
-
-</div>
+      </table>
+      <div class="muted" style="padding:8px 4px">Auto-adding a sample row every 12s</div>
+    </div>
+  </div>
 
 <script>
-    // Sample Chart.js bar chart
-    const ctx = document.getElementById("salesChart");
+/* ========== CONFIG (tweak these) ========== */
+const config = {
+  // Starting KPI values
+  kpis: {
+    users:   { start: 1200, incrementEverySec: 5,   stepPerTick: 3 },   // +3 users each update cycle (see intervals below)
+    active:  { start: 320,  incrementEverySec: 3,   stepPerTick: 2 },
+    revenue: { start: 45600,incrementEverySec: 120, stepPerTick: 75 }, // $75 per cycle
+  },
+  // Animation behavior
+  animation: {
+    // How long a single "count-up" animation runs (ms)
+    durationMs: 800,
+    // How often we trigger another small bump/update (ms)
+    bumpIntervalMs: 5000
+  },
+  // Chart behavior
+  chart: {
+    labels: ["Sep","Oct","Nov","Dec","Jan","Feb"],
+    values: [15000, 18000, 22000, 30000, 35000, 45600],
+    updateEveryMs: 10000, // push a new point every 10s
+    randomRange: [12000, 52000]
+  },
+  // Transactions behavior
+  transactions: {
+    autoAdd: true,
+    addEveryMs: 12000
+  }
+};
 
-    new Chart(ctx, {
-        type: "bar",
-        data: {
-            labels: ["Sep", "Oct", "Nov", "Dec", "Jan", "Feb"],
-            datasets: [{
-                label: "Sales ($)",
-                data: [12000, 15000, 18000, 22000, 26000, 24000],
-                backgroundColor: "#0078d7"
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: { beginAtZero: true }
-            }
-        }
-    });
+/* ========== KPI COUNTERS (smooth animation) ========== */
+function animateCount(el, from, to, durationMs, isCurrency=false){
+  const start = performance.now();
+  function format(v){
+    const n = Math.round(v);
+    return isCurrency ? `$${n.toLocaleString()}` : n.toLocaleString();
+  }
+  function frame(now){
+    const t = Math.min(1, (now - start)/durationMs);
+    const eased = t<.5 ? 2*t*t : -1+(4-2*t)*t; // easeInOutQuad
+    el.textContent = format(from + (to - from)*eased);
+    if(t<1) requestAnimationFrame(frame);
+    else el.textContent = format(to);
+  }
+  requestAnimationFrame(frame);
+}
+
+const elUsers   = document.getElementById('kpiUsers');
+const elActive  = document.getElementById('kpiActive');
+const elRevenue = document.getElementById('kpiRevenue');
+const elUsersD  = document.getElementById('kpiUsersDesc');
+const elActiveD = document.getElementById('kpiActiveDesc');
+const elRevD    = document.getElementById('kpiRevenueDesc');
+
+const kpiState = {
+  users:   config.kpis.users.start,
+  active:  config.kpis.active.start,
+  revenue: config.kpis.revenue.start
+};
+
+// First paint (no animation jump)
+elUsers.textContent   = kpiState.users.toLocaleString();
+elActive.textContent  = kpiState.active.toLocaleString();
+elRevenue.textContent = `$${kpiState.revenue.toLocaleString()}`;
+
+// Periodic bumps with animation
+function bumpKPI(key, el, descEl, step, isCurrency=false){
+  const prev = kpiState[key];
+  const next = prev + step;
+  kpiState[key] = next;
+  animateCount(el, prev, next, config.animation.durationMs, isCurrency);
+  const deltaText = (isCurrency? '+$' : '+') + step.toLocaleString() + ' in last update';
+  descEl.textContent = deltaText;
+}
+
+setInterval(()=> bumpKPI('users', elUsers, elUsersD, config.kpis.users.stepPerTick, false),   config.animation.bumpIntervalMs);
+setInterval(()=> bumpKPI('active', elActive, elActiveD, config.kpis.active.stepPerTick, false),config.animation.bumpIntervalMs);
+setInterval(()=> bumpKPI('revenue', elRevenue, elRevD, config.kpis.revenue.stepPerTick, true), config.animation.bumpIntervalMs);
+
+/* ========== VANILLA LINE CHART (no libraries) ========== */
+const canvas = document.getElementById('salesChart');
+const ctx = canvas.getContext('2d');
+
+// Resize handling for crisp lines
+function resizeCanvas(){
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = Math.floor(rect.width * dpr);
+  canvas.height = Math.floor(280 * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+const chart = {
+  labels: config.chart.labels.slice(),
+  values: config.chart.values.slice()
+};
+
+function drawChart(){
+  const w = canvas.width, h = canvas.height;
+  // clear
+  ctx.clearRect(0,0,w,h);
+
+  // padding
+  const pad = {l:50, r:20, t:20, b:40};
+  const cw = (w - pad.l - pad.r);
+  const ch = (h - pad.t - pad.b);
+
+  // axes
+  ctx.strokeStyle = '#ddd';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); // x-axis
+  ctx.moveTo(pad.l, h - pad.b);
+  ctx.lineTo(w - pad.r, h - pad.b);
+  ctx.stroke();
+
+  ctx.beginPath(); // y-axis
+  ctx.moveTo(pad.l, pad.t);
+  ctx.lineTo(pad.l, h - pad.b);
+  ctx.stroke();
+
+  // y scale
+  const min = Math.min.apply(null, chart.values) * 0.9;
+  const max = Math.max.apply(null, chart.values) * 1.1;
+  const y = v => h - pad.b - ( (v - min) / (max - min) ) * ch;
+
+  // x scale
+  const n = chart.labels.length;
+  const x = i => pad.l + (i * (cw / (n - 1)));
+
+  // grid lines + labels
+  ctx.fillStyle = '#666';
+  ctx.font = '12px Arial';
+  const yTicks = 4;
+  for(let i=0;i<=yTicks;i++){
+    const t = i / yTicks;
+    const val = Math.round(min + (max - min)*t);
+    const yy = y(val);
+    ctx.strokeStyle = '#eee';
+    ctx.beginPath();
+    ctx.moveTo(pad.l, yy);
+    ctx.lineTo(w - pad.r, yy);
+    ctx.stroke();
+    ctx.fillStyle = '#666';
+    ctx.fillText(`$${val.toLocaleString()}`, 6, yy+4);
+  }
+
+  // x labels
+  for(let i=0;i<n;i++){
+    ctx.fillStyle = '#666';
+    ctx.fillText(chart.labels[i], x(i)-8, h - pad.b + 18);
+  }
+
+  // line
+  ctx.strokeStyle = '#0078d7';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for(let i=0;i<n;i++){
+    const xx = x(i), yy = y(chart.values[i]);
+    (i===0)?ctx.moveTo(xx,yy):ctx.lineTo(xx,yy);
+  }
+  ctx.stroke();
+
+  // area fill
+  const grad = ctx.createLinearGradient(0, pad.t, 0, h - pad.b);
+  grad.addColorStop(0,'rgba(0,120,215,.25)');
+  grad.addColorStop(1,'rgba(0,120,215,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  for(let i=0;i<n;i++){
+    const xx = x(i), yy = y(chart.values[i]);
+    (i===0)?ctx.moveTo(xx,yy):ctx.lineTo(xx,yy);
+  }
+  ctx.lineTo(w - pad.r, h - pad.b);
+  ctx.lineTo(pad.l, h - pad.b);
+  ctx.closePath();
+  ctx.fill();
+
+  // points
+  ctx.fillStyle = '#0078d7';
+  for(let i=0;i<n;i++){
+    const xx = x(i), yy = y(chart.values[i]);
+    ctx.beginPath();
+    ctx.arc(xx, yy, 3.5, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+drawChart();
+
+// Periodically push a new (random) point and drop the oldest
+function randIn([lo,hi]){ return Math.floor(lo + Math.random()*(hi-lo)); }
+setInterval(()=>{
+  chart.labels.push(nextMonth(chart.labels.at(-1)));
+  chart.labels.shift();
+  chart.values.push(randIn(config.chart.randomRange));
+  chart.values.shift();
+  drawChart();
+}, config.chart.updateEveryMs);
+
+function nextMonth(m){
+  const order = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const idx = order.indexOf(m);
+  return order[(idx+1+12)%12] || "Jan";
+}
+
+/* ========== AUTO-ADD TRANSACTIONS (synthetic) ========== */
+const txBody = document.getElementById('txBody');
+let txId = 1003;
+
+if(config.transactions.autoAdd){
+  setInterval(()=>{
+    txId++;
+    const users = ["Ramesh","Suresh","Kiran","Anita","Ishaan","Meera","Rahul","Priya"];
+    const user = users[Math.floor(Math.random()*users.length)];
+    const amount = (50 + Math.floor(Math.random()*500));
+    const date = new Date();
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth()+1).padStart(2,'0');
+    const dd = String(date.getDate()).padStart(2,'0');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${txId}</td><td>${user}</td><td>$${amount}</td><td>${yyyy}-${mm}-${dd}</td>`;
+    txBody.insertBefore(tr, txBody.firstChild); // newest on top
+    // Keep only latest 10 rows
+    while(txBody.rows.length>10){ txBody.deleteRow(txBody.rows.length-1); }
+  }, config.transactions.addEveryMs);
+}
 </script>
-
 </body>
 </html>
-
